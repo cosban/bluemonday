@@ -86,6 +86,109 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 	// would initiliaze the maps, then we need to do that.
 	p.init()
 
+	if p.ToStripBrackets() {
+		return p.stripSanitize(r)
+	} else {
+		return p.replaceSanitize(r)
+	}
+}
+
+func swapBrackets(token html.Token) string {
+	t := token.String()
+	t = strings.Replace(t, "<", "&lt;", 1)
+	return strings.Replace(t, ">", "&gt;", 1)
+}
+
+func (p *Policy) replaceSanitize(r io.Reader) *bytes.Buffer {
+	var buff bytes.Buffer
+	tokenizer := html.NewTokenizer(r)
+	skipClosingTag := false
+	closingTagToSkipStack := []string{}
+
+	for {
+		if tokenizer.Next() == html.ErrorToken {
+			err := tokenizer.Err()
+			if err == io.EOF {
+				// End of input means end of processing
+				return &buff
+			}
+
+			// Raw tokenizer error
+			return &bytes.Buffer{}
+		}
+		token := tokenizer.Token()
+		switch token.Type {
+		case html.StartTagToken:
+			{
+				aps, ok := p.elsAndAttrs[token.Data]
+				if !ok {
+					buff.WriteString(swapBrackets(token))
+					break
+				}
+
+				if len(token.Attr) != 0 {
+					token.Attr = p.sanitizeAttrs(token.Data, token.Attr, aps)
+				}
+
+				if len(token.Attr) == 0 {
+					if !p.allowNoAttrs(token.Data) {
+						skipClosingTag = true
+						closingTagToSkipStack = append(closingTagToSkipStack, token.Data)
+						buff.WriteString(swapBrackets(token))
+						break
+					}
+				}
+
+				buff.WriteString(token.String())
+			}
+		case html.EndTagToken:
+			{
+				if skipClosingTag && closingTagToSkipStack[len(closingTagToSkipStack)-1] == token.Data {
+					closingTagToSkipStack = closingTagToSkipStack[:len(closingTagToSkipStack)-1]
+					buff.WriteString(swapBrackets(token))
+					break
+				}
+
+				if _, ok := p.elsAndAttrs[token.Data]; !ok {
+					buff.WriteString(swapBrackets(token))
+					break
+				}
+
+				buff.WriteString(token.String())
+			}
+		case html.SelfClosingTagToken:
+			{
+				aps, ok := p.elsAndAttrs[token.Data]
+				if !ok {
+					buff.WriteString(swapBrackets(token))
+					break
+				}
+
+				if len(token.Attr) != 0 {
+					token.Attr = p.sanitizeAttrs(token.Data, token.Attr, aps)
+				}
+
+				if len(token.Attr) == 0 && !p.allowNoAttrs(token.Data) {
+					buff.WriteString(swapBrackets(token))
+					break
+				}
+
+				buff.WriteString(token.String())
+			}
+		case html.TextToken:
+			{
+				buff.WriteString(token.String())
+			}
+		default:
+			{
+				// A token that didn't exist in the html package when we wrote this
+				return &bytes.Buffer{}
+			}
+		}
+	}
+}
+
+func (p *Policy) stripSanitize(r io.Reader) *bytes.Buffer {
 	var buff bytes.Buffer
 	tokenizer := html.NewTokenizer(r)
 

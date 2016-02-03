@@ -47,6 +47,10 @@ type Policy struct {
 	// exceptions
 	initialized bool
 
+	// When true, if a tag is not in the whitelist, then it will have its
+	// If false, brackets are replaced with &gt;and &lt;
+	toStripBrackets bool
+
 	// Allows the <!DOCTYPE > tag to exist in the sanitized document
 	allowDocType bool
 
@@ -117,6 +121,7 @@ func (p *Policy) init() {
 		p.allowURLSchemes = make(map[string]urlPolicy)
 		p.setOfElementsAllowedWithoutAttrs = make(map[string]struct{})
 		p.setOfElementsToSkipContent = make(map[string]struct{})
+		p.toStripBrackets = true
 		p.initialized = true
 	}
 }
@@ -133,6 +138,14 @@ func NewPolicy() *Policy {
 	p.addDefaultSkipElementContent()
 
 	return &p
+}
+
+func (p *Policy) ToStripBrackets() bool {
+	return p.toStripBrackets
+}
+
+func (p *Policy) StripBrackets(b bool) {
+	p.toStripBrackets = b
 }
 
 // AllowAttrs takes a range of HTML attribute names and returns an

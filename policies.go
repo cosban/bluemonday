@@ -44,6 +44,21 @@ func StripTagsPolicy() *Policy {
 	return StrictPolicy()
 }
 
+// WYSIWYGPolicy returns a Strictlike policy aimed at preventing content from
+// being stripped.
+//
+// Instead of stripping tags completely untrusted tag sets will have their
+// angle brackets replaced with &lt; and &gt;
+func WYSIWYGPolicy() *Policy {
+
+	p := NewPolicy()
+
+	p.StripBrackets(false)
+
+	return p
+
+}
+
 // UGCPolicy returns a policy aimed at user generated content that is a result
 // of HTML WYSIWYG tools and Markdown conversions.
 //

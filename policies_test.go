@@ -29,7 +29,10 @@
 
 package bluemonday
 
-import "testing"
+import (
+	"regexp"
+	"testing"
+)
 
 func TestStrictPolicy(t *testing.T) {
 
@@ -50,6 +53,105 @@ func TestStrictPolicy(t *testing.T) {
 		},
 		test{},
 	}
+
+	for ii, test := range tests {
+		out := p.Sanitize(test.in)
+		if out != test.expected {
+			t.Errorf(
+				"test %d failed;\ninput   : %s\noutput  : %s\nexpected: %s",
+				ii,
+				test.in,
+				out,
+				test.expected,
+			)
+		}
+	}
+}
+
+func TestWYSIWYGPolicy(t *testing.T) {
+	tests := []test{
+		test{
+			in:       "Hello, <b>World</b>!",
+			expected: "Hello, &lt;b&gt;World&lt;/b&gt;!",
+		},
+		test{
+			in:       "<blockquote>Hello, <b>World</b>!",
+			expected: "&lt;blockquote&gt;Hello, &lt;b&gt;World&lt;/b&gt;!",
+		},
+		test{ // Real world example from a message board
+			in:       `<quietly>email me - addy in profile</quiet>`,
+			expected: `&lt;quietly&gt;email me - addy in profile&lt;/quiet&gt;`,
+		},
+		test{
+			in:       `<button onclick="alert(1337)">Submit</button>`,
+			expected: `&lt;button onclick="alert(1337)"&gt;Submit&lt;/button&gt;`,
+		},
+		test{
+			in:       "Hello, World<br/>!",
+			expected: "Hello, World&lt;br/&gt;!",
+		},
+		test{},
+	}
+	p := WYSIWYGPolicy()
+
+	for ii, test := range tests {
+		out := p.Sanitize(test.in)
+		if out != test.expected {
+			t.Errorf(
+				"test %d failed;\ninput   : %s\noutput  : %s\nexpected: %s",
+				ii,
+				test.in,
+				out,
+				test.expected,
+			)
+		}
+	}
+}
+
+func TestCaseSpecificWYSIWYGPolicy(t *testing.T) {
+	tests := []test{
+		test{
+			in:       "Hello, <b>World</b>!",
+			expected: "Hello, <b>World</b>!",
+		},
+		test{
+			in:       "<blockquote>Hello, <b>World</b>!",
+			expected: "&lt;blockquote&gt;Hello, <b>World</b>!",
+		},
+		test{ // Real world example from a message board
+			in:       `<quietly>email me - addy in profile</quiet>`,
+			expected: `&lt;quietly&gt;email me - addy in profile&lt;/quiet&gt;`,
+		},
+		test{
+			in:       `<button onclick="alert(1337)">Submit</button>`,
+			expected: `&lt;button onclick="alert(1337)"&gt;Submit&lt;/button&gt;`,
+		},
+		test{
+			in:       "Hello, World<br/>!",
+			expected: "Hello, World<br/>!",
+		},
+		test{
+			in:       "Hello, <b>World</b>!<spoiler>",
+			expected: "Hello, <b>World</b>!&lt;spoiler&gt;",
+		},
+		test{
+			in:       "Hello <img>test</img>",
+			expected: "Hello &lt;img&gt;test&lt;/img&gt;",
+		},
+		test{
+			in:       `Hello <img src="https://cosban.net/static/">test</img>`,
+			expected: `Hello <img src="https://cosban.net/static/">test</img>`,
+		},
+		test{
+			in:       `Hello <img src="https://google.com/OFFSITE">test</img>`,
+			expected: `Hello &lt;img&gt;test&lt;/img&gt;`,
+		},
+		test{},
+	}
+
+	p := WYSIWYGPolicy()
+	p.AllowElements("b", "br")
+	p.AllowAttrs("src").Matching(regexp.MustCompile(`^https:\/\/cosban.net`)).OnElements("img")
 
 	for ii, test := range tests {
 		out := p.Sanitize(test.in)

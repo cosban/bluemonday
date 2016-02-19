@@ -96,7 +96,7 @@ func TestWYSIWYGPolicy(t *testing.T) {
 		},
 		test{
 			in:       `<a onblur="alert(secret)" href="http://www.google.com">Google</a>`,
-			expected: ``,
+			expected: `&lt;a onblur="alert(secret)" href="http://www.google.com"&gt;Google&lt;/a&gt;`,
 		},
 		test{},
 	}

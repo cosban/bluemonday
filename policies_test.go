@@ -90,6 +90,14 @@ func TestWYSIWYGPolicy(t *testing.T) {
 			in:       "Hello, World<br/>!",
 			expected: "Hello, World&lt;br/&gt;!",
 		},
+		test{
+			in:       `Hello <STYLE>.XSS{background-image:url("javascript:alert('XSS')");}</STYLE><A CLASS=XSS></A>World`,
+			expected: `Hello &lt;style&gt;.XSS{background-image:url(&#34;javascript:alert(&#39;XSS&#39;)&#34;);}&lt;/style&gt;&lt;a class="XSS"&gt;&lt;/a&gt;World`,
+		},
+		test{
+			in:       `<a onblur="alert(secret)" href="http://www.google.com">Google</a>`,
+			expected: ``,
+		},
 		test{},
 	}
 	p := WYSIWYGPolicy()
@@ -145,6 +153,10 @@ func TestCaseSpecificWYSIWYGPolicy(t *testing.T) {
 		test{
 			in:       `Hello <img src="https://google.com/OFFSITE">test</img>`,
 			expected: `Hello &lt;img&gt;test&lt;/img&gt;`,
+		},
+		test{
+			in:       `<b onclick="alert('XSS')">Hello</b> world!`,
+			expected: `<b>Hello</b> world!`,
 		},
 		test{},
 	}

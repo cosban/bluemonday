@@ -174,6 +174,17 @@ func ExampleUGCPolicy() {
 	//<a href="http://www.google.com" rel="nofollow">Google</a>
 }
 
+func ExampleWYSIWYGPolicy() {
+	p := bluemonday.WYSIWYGPolicy()
+	html := p.Sanitize(
+		`<a onblur="alert(secret)" href="http://www.google.com">Google</a>`,
+	)
+
+	// Output:
+	// &lt;a onblur="alert(secret)" href="http://www.google.com"&gt;Google&lt;/a&gt;
+	fmt.Println(html)
+}
+
 func ExamplePolicy_AllowAttrs() {
 	p := bluemonday.NewPolicy()
 

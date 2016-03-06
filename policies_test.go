@@ -139,8 +139,8 @@ func TestCaseSpecificWYSIWYGPolicy(t *testing.T) {
 			expected: "Hello, World<br/>!",
 		},
 		test{
-			in:       "Hello, <b>World</b>!<spoiler>",
-			expected: "Hello, <b>World</b>!&lt;spoiler&gt;",
+			in:       "Hello, <b>World</b>!<strong>",
+			expected: "Hello, <b>World</b>!&lt;strong&gt;",
 		},
 		test{
 			in:       "Hello <img>test</img>",
@@ -158,11 +158,28 @@ func TestCaseSpecificWYSIWYGPolicy(t *testing.T) {
 			in:       `<b onclick="alert('XSS')">Hello</b> world!`,
 			expected: `<b>Hello</b> world!`,
 		},
+		test{
+			in: `<spoiler></spoiler>
+---
+<code>see you space pudding-pop...</code>`,
+			expected: `<spoiler></spoiler>
+---
+<code>see you space pudding-pop...</code>`,
+		},
+		test{
+			in: `<spoiler>test</spoiler>
+---
+<code>see you space pudding-pop...</code>`,
+			expected: `<spoiler>test</spoiler>
+---
+<code>see you space pudding-pop...</code>`,
+		},
 		test{},
 	}
 
 	p := WYSIWYGPolicy()
-	p.AllowElements("b", "br")
+	p.AllowElements("b", "br", "code")
+	p.AllowNoAttrs().OnElements("spoiler")
 	p.AllowAttrs("src").Matching(regexp.MustCompile(`^https:\/\/cosban.net`)).OnElements("img")
 
 	for ii, test := range tests {

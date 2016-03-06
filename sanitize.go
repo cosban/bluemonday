@@ -146,6 +146,9 @@ func (p *Policy) replaceSanitize(r io.Reader) *bytes.Buffer {
 				if skipClosingTag && closingTagToSkipStack[len(closingTagToSkipStack)-1] == token.Data {
 					closingTagToSkipStack = closingTagToSkipStack[:len(closingTagToSkipStack)-1]
 					buff.WriteString(swapBrackets(token))
+					if len(closingTagToSkipStack) == 0 {
+						skipClosingTag = false
+					}
 					break
 				}
 
